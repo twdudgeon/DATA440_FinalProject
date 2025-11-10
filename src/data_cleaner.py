@@ -8,6 +8,43 @@ st.title("🧹 Smart Survey Data Cleaner")
 # --- Step 1: Upload file ---
 uploaded_file = st.file_uploader("Upload a survey file (CSV or Excel)", type=["csv", "xlsx"])
 
+# --- New Function for Categorization ---
+def infer_question_type(series, unique_threshold=20):
+    """Infers the likely survey question type for a pandas Series."""
+    # Count of unique, non-NaN values
+    n_unique = series.nunique(dropna=True)
+    n_rows = len(series)
+
+    # 1. ID/Unique Check (High unique count)
+    # If the number of unique values is very high (e.g., > 95% of rows), it's likely an ID or unique identifier.
+    if n_unique / n_rows > 0.95 and n_unique > unique_threshold:
+        return "ID/Unique"
+
+    # 2. Binary Check (2 unique values)
+    # Exclude Booleans, which are handled by dtypes, and look for two distinct object values.
+    if n_unique == 2:
+        return "Binary"
+
+    # 3. Categorical Check (Low to medium unique count)
+    # If unique values are manageable (e.g., less than the threshold), it's likely a multiple-choice or categorical question.
+    if n_unique <= unique_threshold:
+        return "Categorical"
+
+    # 4. Free Text Check (High unique count for string columns)
+    # If it's a string/object type and has many unique values but less than the ID threshold, it's probably open-ended text.
+    if series.dtype == 'object' and n_unique > unique_threshold:
+        return "Free Text"
+
+    # 5. Numeric/Scale Check
+    # Columns not caught by the above, but are numeric types, are likely scale (e.g., 1-5 rating) or raw numeric.
+    if pd.api.types.is_numeric_dtype(series):
+        # Numeric columns with few unique values might be ordinal scales (e.g., Likert scale 1-5).
+        # We'll treat all remaining numeric columns as general "Numeric/Scale"
+        return "Numeric/Scale"
+
+    # Default fallback
+    return "Other"
+
 if uploaded_file:
     # --- Step 2: Load data ---
     try:
@@ -61,6 +98,24 @@ if uploaded_file:
         return df
 
     cleaned_df = clean_data(df)
+
+    st.subheader("📊 Question Type Analysis")
+    column_categories = {}
+    
+    # Iterate through cleaned columns and assign type
+    for col in cleaned_df.columns:
+        # Skip Date/Time columns for visualization categorization
+        if col in datetime_cols:
+            column_categories[col] = "Date/Time"
+        else:
+            column_categories[col] = infer_question_type(cleaned_df[col])
+
+    # Display the categorization
+    category_df = pd.DataFrame(
+        list(column_categories.items()), 
+        columns=["Column Name", "Inferred Type"]
+    )
+    st.dataframe(category_df, use_container_width=True)
 
     # --- Step 4: Display cleaned data ---
     st.subheader("✨ Cleaned Data Preview")

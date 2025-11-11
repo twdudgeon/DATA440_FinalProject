@@ -2,89 +2,54 @@
 import streamlit as st
 import pandas as pd
 import io
+from data_clean2 import auto_clean_data
 
-# --- IMPORT YOUR CLEANING FUNCTIONS ---
-from data_clean2 import (
-    infer_question_type, 
-    clean_data, 
-    remove_empty_rows_columns, 
-    strip_strings, 
-    convert_numeric, 
-    convert_datetime
-)
-# Note: We import all functions here, even though clean_data is the main one,
-# to match your original structure where they were all defined in the same place.
 
-st.set_page_config(page_title="Survey Data Cleaner", layout="wide")
-st.title("🧹 Smart Survey Data Cleaner")
+st.set_page_config(page_title="🧹 Smart Survey Data Cleaner", layout="wide")
 
-# --- Step 1: Upload file ---
-uploaded_file = st.file_uploader("Upload a survey file (CSV or Excel)", type=["csv", "xlsx"])
+st.title("🧠 Smart Survey Data Cleaner (AI-Assisted)")
 
-# --- (The infer_question_type function definition was here) ---
-# (It has been removed and is now imported)
+# --- Streamlit UI ---
+uploaded = st.file_uploader("📁 Upload a survey file (CSV or Excel)", type=["csv", "xlsx"])
 
-if uploaded_file:
-    # --- Step 2: Load data ---
+if uploaded:
     try:
-        if uploaded_file.name.endswith(".csv"):
-            df = pd.read_csv(uploaded_file)
-        else:
-            df = pd.read_excel(uploaded_file)
-        st.subheader("✅ Raw Data Preview")
-        st.dataframe(df.head(), use_container_width=True)
+        df = pd.read_csv(uploaded) if uploaded.name.endswith(".csv") else pd.read_excel(uploaded)
+        st.success(f"Loaded {len(df)} rows × {len(df.columns)} columns.")
+        st.write(df.head())
     except Exception as e:
-        st.error(f"Error reading file: {e}")
+        st.error(f"Error loading file: {e}")
         st.stop()
 
-    # --- Step 3: Automatic Cleaning ---
-    st.subheader("⚙️ Cleaning in Progress...")
+    # --- Step 2: Auto-infer question types ---
+    st.subheader("🔍 Automatically Detected Question Types")
+    _, type_summary = auto_clean_data(df)
 
-    #standardize column names
-    df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
-
-    #Categorize columns
-    numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
-    datetime_cols = df.select_dtypes(include=["datetime"]).columns.tolist()
-    text_cols = df.select_dtypes(include=["object"]).columns.tolist()
-
-    # --- (All cleaning function definitions were here) ---
-    # (They have been removed and are now imported)
-
-    # --- THIS IS THE ONLY LINE THAT REALLY CHANGES ---
-    # We now pass the column lists to the imported function.
-    cleaned_df = clean_data(df, text_cols, numeric_cols, datetime_cols)
-    
-    st.subheader("📊 Question Type Analysis")
-    column_categories = {}
-    
-    # Iterate through cleaned columns and assign type
-    for col in cleaned_df.columns:
-        if col in datetime_cols: # This list is still defined locally
-            column_categories[col] = "Date/Time"
-        else:
-            # This imported function is called just as before
-            column_categories[col] = infer_question_type(cleaned_df[col])
-
-    # Display the categorization
-    category_df = pd.DataFrame(
-        list(column_categories.items()), 
-        columns=["Column Name", "Inferred Type"]
+    # --- Step 3: Let user override ---
+    st.markdown("### ✏️ Review and adjust detected types (optional)")
+    editable = st.data_editor(
+        type_summary,
+        hide_index=True,
+        num_rows="fixed",
+        use_container_width=True,
+        column_config={"Detected Type": st.column_config.SelectboxColumn(options=[
+            "Likert Scale", "Numeric/Continuous", "Categorical", "Free Text",
+            "Binary (Yes/No)", "Binary (Other)", "Metadata/ID", "Datetime", "Other"
+        ])}
     )
-    st.dataframe(category_df, use_container_width=True)
 
-    # --- Step 4: Display cleaned data ---
-    st.subheader("✨ Cleaned Data Preview")
-    st.dataframe(cleaned_df.head(), use_container_width=True)
+    # --- Step 4: Apply cleaning with user overrides ---
+    if st.button("🚀 Clean and Finalize Data"):
+        overrides = dict(zip(editable["Column"], editable["Detected Type"]))
+        cleaned_df, final_summary = auto_clean_data(df, overrides)
 
-    # --- Step 5: Download cleaned file ---
-    buffer = io.BytesIO()
-    cleaned_df.to_csv(buffer, index=False)
-    buffer.seek(0)
+        st.success("Data cleaned successfully!")
+        st.write("### ✅ Final Schema")
+        st.dataframe(final_summary, use_container_width=True)
 
-    st.download_button(
-        label="📥 Download Cleaned Data (CSV)",
-        data=buffer,
-        file_name="cleaned_survey_data.csv",
-        mime="text/csv"
-    )
+        st.write("### 🧾 Cleaned Data Preview")
+        st.dataframe(cleaned_df.head(10), use_container_width=True)
+
+        # Optionally let user download cleaned data
+        csv = cleaned_df.to_csv(index=False).encode('utf-8')
+        st.download_button("💾 Download Cleaned Data", csv, file_name="cleaned_survey.csv", mime="text/csv")

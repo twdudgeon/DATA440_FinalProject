@@ -54,7 +54,7 @@ def process_and_analyze_data(df):
     """
     
     # 1. Standardize column names
-    df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
+    #df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
 
     # 2. Categorize columns for cleaning
     numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()

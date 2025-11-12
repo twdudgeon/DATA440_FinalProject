@@ -4,7 +4,7 @@ import pandas as pd
 import io
 
 # --- IMPORT YOUR CLEANING FUNCTIONS ---
-import data_clean2 as data_cleaner
+import data_clean3 as data_cleaner
 # --- NEW IMPORTS for visualizations ---
 import plotly.express as px
 from wordcloud import WordCloud
@@ -144,36 +144,115 @@ if uploaded_file:
             mime="text/csv"
         )
 
-        # --- NEW: DETAILED VISUALIZATIONS SECTION ---
-        st.subheader("📈 Detailed Visualizations by Column")
-        
-        # Loop through the category_df dataframe
-        for index, row in category_df.iterrows():
-            col_name = row["Column Name"]
-            col_type = row["Inferred Type"]
+        # --- NEW: DETAILED VISUALIZATIONS (Tabs with Column Grids) ---
+        st.subheader("📈 Detailed Visualizations by Column Type")
+
+        # 1. Filter your category_df to get lists of columns for each type
+        id_cols = category_df[category_df["Inferred Type"] == "ID/Unique"]
+        binary_cols = category_df[category_df["Inferred Type"] == "Binary"]
+        cat_cols = category_df[category_df["Inferred Type"] == "Categorical"]
+        num_cols = category_df[category_df["Inferred Type"] == "Numeric/Scale"]
+        text_cols = category_df[category_df["Inferred Type"] == "Free Text"]
+
+        # 2. Create the main tabs
+        #    We can combine Binary and Categorical since they are similar
+        tab_cat, tab_num, tab_text, tab_id = st.tabs([
+            f"📊 Categorical ({len(binary_cols) + len(cat_cols)})", 
+            f"🔢 Numeric ({len(num_cols)})", 
+            f"✍️ Free Text ({len(text_cols)})",
+            f"🆔 ID Fields ({len(id_cols)})"
+        ])
+
+
+        # --- Populate the "Categorical & Binary" Tab ---
+        with tab_cat:
+            st.header("Categorical & Binary Data")
             
-            # Use an expander to keep things tidy
-            with st.expander(f"Analysis for: {col_name} (Type: {col_type})"):
+            # Combine the two lists
+            all_cat_cols = pd.concat([binary_cols, cat_cols])
+            
+            if all_cat_cols.empty:
+                st.info("No categorical or binary columns found.")
+            else:
+                # 3. Create a grid (e.g., 3 columns)
+                grid_cols = st.columns(3)
+                col_index = 0
                 
-                # Select the right plot based on the type
-                if col_type == "ID/Unique":
-                    plot_id(cleaned_df[col_name])
+                # 4. Loop through the *filtered* list and plot
+                for index, row in all_cat_cols.iterrows():
+                    col_name = row["Column Name"]
+                    col_type = row["Inferred Type"]
                     
-                elif col_type == "Binary":
-                    plot_binary(cleaned_df[col_name])
+                    # Place the plot in the next column, wrapping around
+                    with grid_cols[col_index % 3]:
+                        # Using a container with a border makes it look like a "card"
+                        with st.container(border=True):
+                            st.subheader(f"{col_name}")
+                            if col_type == "Binary":
+                                plot_binary(cleaned_df[col_name])
+                            else:
+                                plot_categorical(cleaned_df[col_name])
                     
-                elif col_type == "Categorical":
-                    plot_categorical(cleaned_df[col_name])
-                    
-                elif col_type == "Numeric/Scale":
-                    plot_numeric(cleaned_df[col_name])
-                    
-                elif col_type == "Free Text":
-                    plot_text(cleaned_df[col_name])
-                    
-                else:
-                    # Catch "Date/Time" or "Other"
-                    st.info(f"No standard visualization for '{col_type}' type.")
+                    col_index += 1
+
+        # --- Populate the "Numeric" Tab ---
+        with tab_num:
+            st.header("Numeric (Scale) Data")
+            
+            if num_cols.empty:
+                st.info("No numeric/scale columns found.")
+            else:
+                # Histograms are wider, so 2 columns might be better
+                grid_cols = st.columns(2) 
+                col_index = 0
+                
+                for index, row in num_cols.iterrows():
+                    col_name = row["Column Name"]
+                    with grid_cols[col_index % 2]:
+                        with st.container(border=True):
+                            st.subheader(f"{col_name}")
+                            plot_numeric(cleaned_df[col_name])
+                    col_index += 1
+
+        # --- Populate the "Free Text" Tab ---
+        with tab_text:
+            st.header("Free Text Data (Word Clouds)")
+            
+            if text_cols.empty:
+                st.info("No free text columns found.")
+            else:
+                # Word clouds are also wide
+                grid_cols = st.columns(2)
+                col_index = 0
+                
+                for index, row in text_cols.iterrows():
+                    col_name = row["Column Name"]
+                    with grid_cols[col_index % 2]:
+                        with st.container(border=True):
+                            st.subheader(f"{col_name}")
+                            plot_text(cleaned_df[col_name])
+                    col_index += 1
+
+        # --- Populate the "ID" Tab ---
+        with tab_id:
+            st.header("ID / Unique Identifier Fields")
+            
+            if id_cols.empty:
+                st.info("No ID/Unique columns found.")
+            else:
+                # Metric cards are small and can fit in more columns
+                grid_cols = st.columns(4)
+                col_index = 0
+                
+                for index, row in id_cols.iterrows():
+                    col_name = row["Column Name"]
+                    with grid_cols[col_index % 4]:
+                        # Note: plot_id() already uses st.metric, which looks 
+                        # great on its own, but the border adds consistency.
+                        with st.container(border=True): 
+                            st.subheader(f"{col_name}")
+                            plot_id(cleaned_df[col_name])
+                    col_index += 1
 
     except Exception as e:
         st.error(f"Error during processing or visualization: {e}")

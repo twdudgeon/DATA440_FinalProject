@@ -144,7 +144,7 @@ if uploaded_file:
 
         st.info("You can adjust any inferred type below. Changes will update the visualizations automatically.")
 
-        type_options = ["ID/Unique", "Binary", "Categorical", "Numeric/Scale", "Free Text"]
+        type_options = ["ID/Unique", "Binary", "Categorical", "Numeric/Scale", "Free Text", "Datetime"]
 
         # Create a copy to store user overrides
         override_df = category_df.copy()

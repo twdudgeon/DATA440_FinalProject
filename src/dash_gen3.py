@@ -69,15 +69,29 @@ def plot_text(series):
     # 
     st.info("Word Cloud generated from the most frequent words. Common 'stop words' are removed.")
     
-    # Check for empty series
-    if series.dropna().empty:
-        st.info("This column contains no text data to visualize.")
-        return
-
-    # Combine all text, dropping NaNs and converting to string
-    text = ' '.join(series.dropna().astype(str))
+    # 1. Get the series, drop actual np.nan values, and convert all to string
+    cleaned_series = series.dropna().astype(str)
     
-    if not text:
+    # 2. Define a set of null-like strings to exclude
+    #    We check against a lower-case version
+    cleaned_series_lower = cleaned_series.str.lower()
+    null_strings = {'nan', 'none', 'null', ''} # Add others if needed
+    
+    # 3. Create a mask for values that are NOT in null_strings
+    mask = ~cleaned_series_lower.isin(null_strings)
+    
+    # 4. Apply the mask to the original (non-lowercased) series
+    filtered_series = cleaned_series[mask]
+
+    # 5. Check if the filtered series is empty
+    if filtered_series.empty:
+        st.info("This column contains no text data to visualize (after filtering nulls).")
+        return
+        
+    # 6. Combine all text
+    text = ' '.join(filtered_series)
+    
+    if not text: # Fallback check
         st.info("This column contains no text data to visualize.")
         return
         

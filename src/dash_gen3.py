@@ -33,20 +33,29 @@ def plot_binary(series):
                  title='Response Distribution')
     st.plotly_chart(fig, use_container_width=True)
 
-# --- 3. Plot function for Categorical (Bar Chart) ---
-def plot_categorical(series):
-    """Displays a simple Streamlit bar chart for categorical data."""
+# --- 3. Plot function for Categorical (Bar Chart) [CHANGE 1] ---
+def plot_categorical(series, color): # Added 'color' parameter
+    """Displays a Plotly bar chart for categorical data."""
     # 
     # Get value counts
     counts = series.value_counts().reset_index()
     counts.columns = ['Category', 'Count']
     
-    # Use st.bar_chart, which expects the 'Category' to be the index
-    counts_for_st = counts.set_index('Category')
-    st.bar_chart(counts_for_st)
+    # Optional: Sort values for a cleaner chart (e.g., highest to lowest)
+    counts = counts.sort_values(by="Count", ascending=False)
+    
+    # Create Plotly bar chart instead of st.bar_chart
+    fig = px.bar(counts, 
+                 x='Category',      # Categories on the x-axis
+                 y='Count',         # Count on the y-axis
+                 title='Response Distribution',
+                 color_discrete_sequence=[color] # Use the passed-in color
+                )
+    
+    st.plotly_chart(fig, use_container_width=True)
 
 # --- 4. Plot function for Numeric/Scale (Histogram) ---
-def plot_numeric(series):
+def plot_numeric(series, color):
     """Displays a Plotly histogram for numeric data."""
     # 
     # Drop NaNs for histogram calculation
@@ -59,7 +68,9 @@ def plot_numeric(series):
     # Use Plotly Express for histogram
     fig = px.histogram(data_to_plot, 
                        nbins=20,  # You can adjust the number of bins
-                       title='Response Distribution')
+                       title='Response Distribution',
+                       color_discrete_sequence=[color] # Set the bar color
+                      )
     fig.update_layout(bargap=0.1) # Add a small gap between bars
     st.plotly_chart(fig, use_container_width=True)
 
@@ -168,6 +179,9 @@ if uploaded_file:
         num_cols = category_df[category_df["Inferred Type"] == "Numeric/Scale"]
         text_cols = category_df[category_df["Inferred Type"] == "Free Text"]
 
+        # Define a color palette to cycle through
+        color_palette = px.colors.qualitative.Plotly 
+
         # 2. Create the main tabs
         #    We can combine Binary and Categorical since they are similar
         tab_cat, tab_num, tab_text, tab_id = st.tabs([
@@ -178,7 +192,7 @@ if uploaded_file:
         ])
 
 
-        # --- Populate the "Categorical & Binary" Tab ---
+        # --- Populate the "Categorical & Binary" Tab [CHANGE 2] ---
         with tab_cat:
             st.header("Categorical & Binary Data")
             
@@ -197,15 +211,20 @@ if uploaded_file:
                     col_name = row["Column Name"]
                     col_type = row["Inferred Type"]
                     
+                    # Get the color for this specific chart
+                    color_to_use = color_palette[col_index % len(color_palette)]
+                    
                     # Place the plot in the next column, wrapping around
                     with grid_cols[col_index % 3]:
                         # Using a container with a border makes it look like a "card"
                         with st.container(border=True):
                             st.subheader(f"{col_name}")
                             if col_type == "Binary":
+                                # Binary pie charts don't need a single color
                                 plot_binary(cleaned_df[col_name])
                             else:
-                                plot_categorical(cleaned_df[col_name])
+                                # Categorical bar charts get the single color
+                                plot_categorical(cleaned_df[col_name], color_to_use)
                     
                     col_index += 1
 
@@ -222,10 +241,15 @@ if uploaded_file:
                 
                 for index, row in num_cols.iterrows():
                     col_name = row["Column Name"]
+                    
+                    # Get the color for this specific chart
+                    color_to_use = color_palette[col_index % len(color_palette)]
+                    
                     with grid_cols[col_index % 2]:
                         with st.container(border=True):
                             st.subheader(f"{col_name}")
-                            plot_numeric(cleaned_df[col_name])
+                            # Pass the selected color to the plot function
+                            plot_numeric(cleaned_df[col_name], color_to_use)
                     col_index += 1
 
         # --- Populate the "Free Text" Tab ---

@@ -151,9 +151,33 @@ if uploaded_file:
         cleaned_df, category_df = data_cleaner.process_and_analyze_data(df.copy())
     
         # --- Display Analysis Table ---
-        st.subheader("📊 Question Type Analysis")
-        st.dataframe(category_df, use_container_width=True)
+        st.subheader("🧭 Manual Override of Question Categories")
 
+        st.info("You can adjust any inferred type below. Changes will update the visualizations automatically.")
+
+        type_options = ["ID/Unique", "Binary", "Categorical", "Numeric/Scale", "Free Text", "Datetime"]
+
+        # Create a copy to store user overrides
+        override_df = category_df.copy()
+
+        # Let users pick overrides with selectboxes
+        for i, row in override_df.iterrows():
+            col1, col2 = st.columns([3, 2])
+            with col1:
+                st.write(f"**{row['Column Name']}**")
+            with col2:
+                new_type = st.selectbox(
+                    f"Type for {row['Column Name']}",
+                    options=type_options,
+                    index=type_options.index(row["Inferred Type"]) if row["Inferred Type"] in type_options else 0,
+                    key=f"override_{i}"
+                )
+                override_df.at[i, "Inferred Type"] = new_type
+
+        # Apply button
+        if st.button("✅ Apply Overrides and Refresh Visualizations"):
+            category_df = override_df.copy()
+            st.success("Overrides applied successfully!")
         # --- Display Cleaned Data Preview ---
         st.subheader("✨ Cleaned Data Preview")
         st.dataframe(cleaned_df.head(), use_container_width=True)

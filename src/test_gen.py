@@ -34,7 +34,7 @@ def plot_numeric(series):
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_text(series):
-    st.info("Word Cloud generated from the most frequent words. Common 'stop words' are removed.")
+    st.info("Word Cloud generated from the most frequent words.")
     if series.dropna().empty:
         st.info("This column contains no text data to visualize.")
         return
@@ -43,7 +43,8 @@ def plot_text(series):
         st.info("This column contains no text data to visualize.")
         return
     try:
-        wordcloud = WordCloud(width=800, height=400, background_color='white', min_font_size=10).generate(text)
+        stopwords = ["nan"]
+        wordcloud = WordCloud(width=800, height=400, background_color='white', min_font_size=10, stopwords=stopwords).generate(text)
         fig, ax = plt.subplots()
         ax.imshow(wordcloud, interpolation='bilinear')
         ax.axis('off')

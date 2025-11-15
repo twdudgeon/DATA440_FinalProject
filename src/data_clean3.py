@@ -1,12 +1,28 @@
 # data_clean3.py
 import pandas as pd
+import re
+
+# --- Keyword patterns for initial inference ---
+QUESTION_KEYWORDS = {
+    r"date|time": "Datetime",
+    r"satisfaction|rate|agree|importance": "Categorical",
+    r"age": "Numeric/Scale",
+    r"gender|sex": "Categorical",
+    r"feedback|comment|describe|thought|explain|open|why|tell": "Free Text",
+    r"location|city|state|country": "Categorical",
+    r"zip": "ID/Unique",
+    r"email|phone|id|name|record|user|uuid|timestamp|login": "ID/Unique",
+}
 
 # --- Function for Categorization ---
-def infer_question_type(series, unique_threshold=20):
+def infer_question_type(series, col, unique_threshold=20):
     """Infers the likely survey question type for a pandas Series."""
     n_unique = series.nunique(dropna=True)
     n_rows = len(series)
-
+    # 1️⃣ Keyword-based detection
+    for pattern, qtype in QUESTION_KEYWORDS.items():
+        if re.search(pattern, col):
+            return qtype
     if n_unique / n_rows > 0.95 and n_unique > unique_threshold:
         return "ID/Unique"
     if n_unique == 2:
@@ -77,7 +93,7 @@ def process_and_analyze_data(df):
         if col in final_datetime_cols:
             column_categories[col] = "Date/Time"
         else:
-            column_categories[col] = infer_question_type(df[col])
+            column_categories[col] = infer_question_type(df[col], col)
             
     # 5. Create the analysis dataframe
     category_df = pd.DataFrame(

@@ -49,9 +49,11 @@ def plot_categorical(series, color): # Added 'color' parameter
                  x='Category',      # Categories on the x-axis
                  y='Count',         # Count on the y-axis
                  title='Response Distribution',
-                 color_discrete_sequence=[color] # Use the passed-in color
+                 color_discrete_sequence=[color], # Use the passed-in color
+                 text_auto=True        # Show counts on bars
                 )
-    
+    # Set text position on the traces (px.bar does not accept textposition directly)
+    fig.update_traces(textposition="outside", cliponaxis=False)
     st.plotly_chart(fig, use_container_width=True)
 
 # --- 4. Plot function for Numeric/Scale (Histogram) ---

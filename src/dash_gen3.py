@@ -56,7 +56,7 @@ def plot_categorical(series, color): # Added 'color' parameter
     fig.update_traces(textposition="outside", cliponaxis=False)
     st.plotly_chart(fig, use_container_width=True)
 
-# --- 4. Plot function for Numeric/Scale (Histogram) ---
+# --- 4. Plot function for Numeric (Histogram) ---
 def plot_numeric(series, color):
     """Displays a Plotly histogram for numeric data."""
     # 
@@ -151,13 +151,15 @@ if uploaded_file:
     try:
         # Call the one main function from data_cleaner.py
         cleaned_df, category_df = data_cleaner.process_and_analyze_data(df.copy())
+
+        st.dataframe(category_df, use_container_width=True)
     
         # --- Display Analysis Table ---
         st.subheader("🧭 Manual Override of Question Categories")
 
         st.info("You can adjust any inferred type below. Changes will update the visualizations automatically.")
 
-        type_options = ["ID/Unique", "Binary", "Categorical", "Numeric/Scale", "Free Text", "Datetime"]
+        type_options = ["ID/Unique", "Binary", "Likert Scale", "Categorical", "Numeric", "Free Text", "Datetime"]
 
         # Create a copy to store user overrides
         override_df = category_df.copy()
@@ -202,8 +204,9 @@ if uploaded_file:
         id_cols = category_df[category_df["Inferred Type"] == "ID/Unique"]
         binary_cols = category_df[category_df["Inferred Type"] == "Binary"]
         cat_cols = category_df[category_df["Inferred Type"] == "Categorical"]
-        num_cols = category_df[category_df["Inferred Type"] == "Numeric/Scale"]
+        num_cols = category_df[category_df["Inferred Type"] == "Numeric"]
         text_cols = category_df[category_df["Inferred Type"] == "Free Text"]
+        likert_cols = category_df[category_df["Inferred Type"] == "Likert Scale"]
 
         # Define a color palette to cycle through
         color_palette = px.colors.qualitative.Plotly 
@@ -211,7 +214,7 @@ if uploaded_file:
         # 2. Create the main tabs
         #    We can combine Binary and Categorical since they are similar
         tab_cat, tab_num, tab_text, tab_id = st.tabs([
-            f"📊 Categorical ({len(binary_cols) + len(cat_cols)})", 
+            f"📊 Categorical and Likert ({len(binary_cols) + len(cat_cols) + len(likert_cols)})", 
             f"🔢 Numeric ({len(num_cols)})", 
             f"✍️ Free Text ({len(text_cols)})",
             f"🆔 ID Fields ({len(id_cols)})"
@@ -220,13 +223,13 @@ if uploaded_file:
 
         # --- Populate the "Categorical & Binary" Tab [CHANGE 2] ---
         with tab_cat:
-            st.header("Categorical & Binary Data")
+            st.header("Categorical, Binary, and Likert Data")
             
             # Combine the two lists
-            all_cat_cols = pd.concat([binary_cols, cat_cols])
+            all_cat_cols = pd.concat([binary_cols, cat_cols, likert_cols], ignore_index=True)
             
             if all_cat_cols.empty:
-                st.info("No categorical or binary columns found.")
+                st.info("No categorical, likert, or binary columns found.")
             else:
                 # 3. Create a grid (e.g., 3 columns)
                 grid_cols = st.columns(3)
@@ -256,10 +259,10 @@ if uploaded_file:
 
         # --- Populate the "Numeric" Tab ---
         with tab_num:
-            st.header("Numeric (Scale) Data")
+            st.header("Numeric Data")
             
             if num_cols.empty:
-                st.info("No numeric/scale columns found.")
+                st.info("No numeric columns found.")
             else:
                 # Histograms are wider, so 2 columns might be better
                 grid_cols = st.columns(2) 

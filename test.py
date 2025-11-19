@@ -1,4 +1,4 @@
-import src.data_clean3 as data_cleaner
+import data_clean as data_cleaner
 import pandas as pd
 
 def test_process_and_analyze_data():

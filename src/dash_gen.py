@@ -211,16 +211,72 @@ if uploaded_file:
         # Define a color palette to cycle through
         color_palette = px.colors.qualitative.Plotly 
 
+        # --- GLOBAL DATE RANGE FILTER (applies to all charts) ---
+        datetime_cols_all = category_df[category_df["Inferred Type"] == "Datetime"]
+
+        # Default to full dataset
+        filtered_df = cleaned_df.copy()
+
+        if not datetime_cols_all.empty:
+            st.subheader("📅 Global Date Range Filter")
+
+            # Use the first datetime column as the global reference
+            global_dt_col = datetime_cols_all.iloc[0]["Column Name"]
+
+            # Safely convert to datetime
+            dt_series_global = pd.to_datetime(cleaned_df[global_dt_col], errors="coerce")
+
+            # Drop invalid dates for min/max calculation
+            valid_dates = dt_series_global.dropna()
+
+            if valid_dates.empty:
+                st.warning("No valid datetime values found. Date filtering disabled.")
+            else:
+                min_date = valid_dates.min().date()
+                max_date = valid_dates.max().date()
+
+                # Checkbox: allow including all dates
+                include_all = st.checkbox("Include all dates (ignore date filtering)", value=True)
+
+                if not include_all:
+                    # Safe default range
+                    default_start = min_date
+                    default_end = max_date
+
+                    # Date picker with valid ranges only
+                    start_date, end_date = st.date_input(
+                        "Filter dataset by date range:",
+                        value=(default_start, default_end),
+                        min_value=min_date,
+                        max_value=max_date
+                    )
+
+                    # Ensure start <= end (if user enters backwards)
+                    if start_date > end_date:
+                        st.warning("Start date cannot be after end date. Showing all data instead.")
+                    else:
+                        mask = (
+                            dt_series_global.dt.date >= start_date
+                        ) & (
+                            dt_series_global.dt.date <= end_date
+                        )
+
+                        filtered_df = cleaned_df[mask].copy()
+                else:
+                    # User chose to bypass filter
+                    filtered_df = cleaned_df.copy()
+
+
+        # Use filtered_df for all subsequent plots
         # 2. Create the main tabs
         #    We can combine Binary and Categorical since they are similar
-        tab_cat, tab_num, tab_text, tab_id = st.tabs([
-            f"📊 Categorical and Likert ({len(binary_cols) + len(cat_cols) + len(likert_cols)})", 
-            f"🔢 Numeric ({len(num_cols)})", 
-            f"✍️ Free Text ({len(text_cols)})",
-            f"🆔 ID Fields ({len(id_cols)})"
-        ])
-
-
+        tab_cat, tab_num, tab_text, tab_id, tab_time = st.tabs([
+        f"📊 Categorical and Likert ({len(binary_cols) + len(cat_cols) + len(likert_cols)})", 
+        f"🔢 Numeric ({len(num_cols)})", 
+        f"✍️ Free Text ({len(text_cols)})",
+        f"🆔 ID Fields ({len(id_cols)})",
+        f"⏳ Datetime Columns and Time Series ({len(datetime_cols_all)})"
+])
         # --- Populate the "Categorical & Binary" Tab [CHANGE 2] ---
         with tab_cat:
             st.header("Categorical, Binary, and Likert Data")
@@ -250,10 +306,10 @@ if uploaded_file:
                             st.subheader(f"{col_name}")
                             if col_type == "Binary":
                                 # Binary pie charts don't need a single color
-                                plot_binary(cleaned_df[col_name])
+                                plot_binary(filtered_df[col_name])
                             else:
                                 # Categorical bar charts get the single color
-                                plot_categorical(cleaned_df[col_name], color_to_use)
+                                plot_categorical(filtered_df[col_name], color_to_use)
                     
                     col_index += 1
 
@@ -278,7 +334,7 @@ if uploaded_file:
                         with st.container(border=True):
                             st.subheader(f"{col_name}")
                             # Pass the selected color to the plot function
-                            plot_numeric(cleaned_df[col_name], color_to_use)
+                            plot_numeric(filtered_df[col_name], color_to_use)
                     col_index += 1
 
         # --- Populate the "Free Text" Tab ---
@@ -297,7 +353,7 @@ if uploaded_file:
                     with grid_cols[col_index % 2]:
                         with st.container(border=True):
                             st.subheader(f"{col_name}")
-                            plot_text(cleaned_df[col_name])
+                            plot_text(filtered_df[col_name])
                     col_index += 1
 
         # --- Populate the "ID" Tab ---
@@ -318,9 +374,55 @@ if uploaded_file:
                         # great on its own, but the border adds consistency.
                         with st.container(border=True): 
                             st.subheader(f"{col_name}")
-                            plot_id(cleaned_df[col_name])
+                            plot_id(filtered_df[col_name])
                     col_index += 1
+        
+         # --- TIME SERIES TAB ---
+        with tab_time:
+            st.header("⏳ Datetime Columns and Time Series Visualizations")
 
+            datetime_cols = datetime_cols_all  # reused from global filter
+
+            if datetime_cols.empty:
+                st.info("No datetime columns found.")
+            else:
+                dt_col = st.selectbox(
+                    "Select a datetime column to visualize over time:",
+                    datetime_cols["Column Name"].tolist()
+                )
+
+                dt_series = pd.to_datetime(filtered_df[dt_col], errors="coerce")
+
+                min_dt = dt_series.min()
+                max_dt = dt_series.max()
+
+                if pd.isna(min_dt) or pd.isna(max_dt):
+                    st.warning("This datetime column contains no valid datetime data.")
+                else:
+                    # Aggregate by day — change to "H" for hourly
+                    time_counts = (
+                        dt_series.dropna()
+                        .dt.floor("D")
+                        .value_counts()
+                        .sort_index()
+                        .reset_index()
+                    )
+                    time_counts.columns = ["Date", "Count"]
+
+                    if time_counts.empty:
+                        st.info("No responses in this date range.")
+                    else:
+                        fig = px.line(
+                            time_counts,
+                            x="Date",
+                            y="Count",
+                            title=f"Responses Over Time — {dt_col}",
+                            markers=True
+                        )
+                        fig.update_layout(xaxis_title="Date", yaxis_title="Count")
+
+                        st.plotly_chart(fig, use_container_width=True)
+       
     except Exception as e:
         st.error(f"Error during processing or visualization: {e}")
         st.exception(e) # Shows the full error for debugging

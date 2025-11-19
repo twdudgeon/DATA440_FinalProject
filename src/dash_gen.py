@@ -244,12 +244,26 @@ if uploaded_file:
                     default_end = max_date
 
                     # Date picker with valid ranges only
-                    start_date, end_date = st.date_input(
+                    date_input_result = st.date_input(
                         "Filter dataset by date range:",
                         value=(default_start, default_end),
                         min_value=min_date,
                         max_value=max_date
                     )
+
+                    # Normalize the possible return types from st.date_input
+                    # It may return a single date or a tuple/list of two dates.
+                    if isinstance(date_input_result, (tuple, list)):
+                        if len(date_input_result) == 2:
+                            start_date, end_date = date_input_result
+                        elif len(date_input_result) == 1:
+                            start_date = end_date = date_input_result[0]
+                        else:
+                            # Fallback to defaults for any unexpected shape
+                            start_date, end_date = default_start, default_end
+                    else:
+                        # Single date returned
+                        start_date = end_date = date_input_result
 
                     # Ensure start <= end (if user enters backwards)
                     if start_date > end_date:

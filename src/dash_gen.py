@@ -4,7 +4,7 @@ import pandas as pd
 import io
 
 # --- IMPORT YOUR CLEANING FUNCTIONS ---
-import data_clean3 as data_cleaner
+import data_clean as data_cleaner
 # --- NEW IMPORTS for visualizations ---
 import plotly.express as px
 from wordcloud import WordCloud

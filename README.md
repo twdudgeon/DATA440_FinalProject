@@ -60,6 +60,7 @@ And be sure to specify any other minimum requirements like Python versions or op
 ## 🚀 Usage
 
 *Show off what your software looks like in action! Try to limit it to one-liners if possible and don't delve into API specifics.*
+Maybe mention the two files we are using for this project?
 
 ```py
 >>> import mypackage

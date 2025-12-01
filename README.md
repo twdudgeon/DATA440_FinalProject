@@ -27,6 +27,14 @@ To ensure the dashboard functions correctly, the uploaded `.CSV` file should be 
 
 > **Note:** The application is optimized for standard survey formats where the first column represents the primary identifier or first question, and subsequent columns represent associated responses.
 
+## Files Used
+
+The project relies on the following scripts:
+
+* **`app.py`**: The script that most users will interact with, it runs the processes caused by the below files facilitating the dashboard visualizations.
+* **`dash_gen.py`**: The main entry point for the application. This script generates the front-facing dashboard and automatically calls the cleaning logic.
+* **`data_clean.py`**: A utility script responsible for ingesting and preprocessing the raw survey `.csv` data. This is imported and utilized directly by `dash_gen.py`.
+
 ## 💭 Purpose
 
 We developed this tool to help organizations democratize their data analysis. Many organizations collect feedback but struggle to utilize it due to the technical barriers of data cleaning and visualization. 

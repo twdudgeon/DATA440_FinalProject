@@ -9,7 +9,7 @@ This project is a **Streamlit-based dashboard** designed to automate the cleanin
 The tool is specifically engineered for survey data, handling the transition from raw responses to categorized visual trends without requiring manual data manipulation or external contractors.
 
 ## 💡 Quick Start Guide
-[Go to the other file](QuickStart.md)
+[Quick Start Guide Here](QuickStart.md)
 
 ## 🌟 Highlights
 

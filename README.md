@@ -24,22 +24,13 @@ This part will describe the various categories, visualizations, and human side i
 
 ## ⬇️ Environment Set Up
 
-Simple, understandable installation instructions!
+This project is managed using [UV](https://docs.astral.sh/uv/guides/install-python/). If you do not yet have UV installed or need help troubleshooting issues with UV, refer to [their documentation](https://docs.astral.sh/uv/guides/install-python/).
 
-```bash
-pip install my-package
-```
+Once you have UV installed, simply download the repository, navigate to the directory and run: `uv sync` to install dependencies.
 
-And be sure to specify any other minimum requirements like Python versions or operating systems.
-
-*You may be inclined to add development instructions here, don't.*
-
-## 🚀 Usage
-
-*Show off what your software looks like in action! Try to limit it to one-liners if possible and don't delve into API specifics.*
-
-```py
->>> import mypackage
->>> mypackage.do_stuff()
-'Oh yeah!'
-```
+To run the program:
+1. First, from your terminal run `uv add streamlit`
+2. To generate the dashboard run `uv run streamlit run .\src\dash_gen.py`
+3. Once the webpage loads, upload your survey data.
+4. Next, check that each survey question has been categorized correctly and mannually override inferred question types as needed. 
+5. When you are finished in the dashboard, go to terminal and click Ctrl + C to end the streamlit session. 

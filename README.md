@@ -54,5 +54,8 @@ Ultimately, this project lowers the hurdle for analyzing trends, allowing organi
 
 ## Dashboard Description
 
-This part will describe the various categories, visualizations, and human side interactions of the dashboard
- 
+The dashboard opens with a button to upload survey results and it only accepts an excel or csv file. Once you upload a file, a preview of the raw data will show. Below that, there is a table of each question with its inferred category. It is important to double check the inferred question types because our auto-categorizer is sometimes incorrect. Next, there is a section to manually override the question types, so you can adjust categorizations as needed. When you finish, click the button to appky overrides and refresh visualizations. There is a preview of the cleaned data, and you have the option to download it as a csv. 
+
+For the visualizations, there a tab for categorical and likert, numeric, free text, ID fields, and time series data. Bar charts display for categorical and likert scale questions. Binary data shows a pie chart. Numeric questions display histograms. Free text questions are word clouds with some meanignless words removed. ID / unique identifier fields just show count of unique values. Lastly, Datetime columns and time series data are displayed as line charts, showing responses over time. 
+
+Additionally, there is an option to filter results by date. This allows users to view visualizations for specific periods of time. 
